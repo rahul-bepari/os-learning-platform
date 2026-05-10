@@ -45,7 +45,7 @@ export default function Chapter() {
       </div>
 
       <div style={{ padding: 60 }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '60px 40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '60px 40px', textAlign: 'center' }}>
           <div style={{ fontSize: 56, marginBottom: 20 }}>🚧</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12 }}>
             Full content coming soon
@@ -72,7 +72,7 @@ export default function Chapter() {
         {prev
           ? (
             <Link to={'/chapter/' + prev.id} style={{ textDecoration: 'none' }}>
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer', transition: 'all 0.2s' }}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer' }}
                 onMouseEnter={function(e) { e.currentTarget.style.borderColor = prev.color }}
                 onMouseLeave={function(e) { e.currentTarget.style.borderColor = 'var(--border)' }}
               >
@@ -84,7 +84,7 @@ export default function Chapter() {
           : <div />}
         {next && (
           <Link to={'/chapter/' + next.id} style={{ textDecoration: 'none' }}>
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer', textAlign: 'right', transition: 'all 0.2s' }}
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer', textAlign: 'right' }}
               onMouseEnter={function(e) { e.currentTarget.style.borderColor = next.color }}
               onMouseLeave={function(e) { e.currentTarget.style.borderColor = 'var(--border)' }}
             >

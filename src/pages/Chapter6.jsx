@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import CodeEditor from '../components/CodeEditor'
 import Terminal from '../components/Terminal'
 
@@ -21,7 +21,7 @@ const QUIZ = [
     q: 'What is a race condition?',
     options: [
       'When two processes run at the same speed',
-      'When several processes access and manipulate shared data concurrently and the outcome depends on the order of execution',
+      'When several processes access and manipulate shared data concurrently and the outcome depends on execution order',
       'When a process runs faster than expected',
       'When the CPU scheduler makes poor decisions'
     ],
@@ -37,7 +37,7 @@ const QUIZ = [
       'Atomicity, Consistency, Isolation'
     ],
     answer: 1,
-    explanation: 'A correct solution must satisfy: (1) Mutual Exclusion — only one process in critical section at a time, (2) Progress — if no process is in CS, selection cannot be postponed indefinitely, (3) Bounded Waiting — a bound exists on how many times others can enter before a waiting process gets in.'
+    explanation: 'A correct solution must satisfy: (1) Mutual Exclusion — only one process in CS at a time, (2) Progress — selection cannot be postponed indefinitely, (3) Bounded Waiting — a bound exists on how many times others can enter before a waiting process gets in.'
   },
   {
     q: 'What is the initial value of a binary semaphore used as a mutex?',
@@ -54,7 +54,7 @@ const QUIZ = [
       'Monitors work on distributed systems'
     ],
     answer: 2,
-    explanation: 'Monitors provide a higher-level abstraction. Only one process can be active within a monitor at a time — mutual exclusion is enforced automatically by the language/runtime. With semaphores, programmers must manually call wait/signal correctly, which is error-prone.'
+    explanation: 'Monitors provide a higher-level abstraction. Only one process can be active within a monitor at a time — mutual exclusion is enforced automatically. With semaphores, programmers must manually call wait/signal correctly, which is error-prone.'
   },
   {
     q: 'What is a spinlock?',
@@ -65,7 +65,7 @@ const QUIZ = [
       'A deadlock involving spinning threads'
     ],
     answer: 1,
-    explanation: 'A spinlock uses busy waiting — the process loops (spins) continuously checking if the lock is available. Wasteful on single-CPU systems (wastes CPU cycles) but efficient on multiprocessors for very short critical sections (no context switch overhead).'
+    explanation: 'A spinlock uses busy waiting — the process loops continuously checking if the lock is available. Wasteful on single-CPU systems but efficient on multiprocessors for very short critical sections (no context switch overhead).'
   },
   {
     q: 'What causes deadlock with semaphores?',
@@ -76,7 +76,7 @@ const QUIZ = [
       'Using binary semaphores instead of counting semaphores'
     ],
     answer: 1,
-    explanation: 'Deadlock occurs when P0 calls wait(S) and P1 calls wait(Q), then P0 calls wait(Q) and P1 calls wait(S). Each is waiting for the other to release. Since neither can proceed, both are deadlocked forever.'
+    explanation: 'Deadlock occurs when P0 calls wait(S) and P1 calls wait(Q), then P0 calls wait(Q) and P1 calls wait(S). Each is waiting for the other to release — both are deadlocked forever.'
   },
 ]
 
@@ -113,15 +113,13 @@ function NavButtons({ prev, prevLabel, next, nextLabel }) {
   )
 }
 
-// ── Race Condition Visualizer ──────────────────────────────────
 function RaceConditionVisualizer() {
-  const [running, setRunning]   = useState(false)
-  const [counter, setCounter]   = useState(5)
-  const [p0reg, setP0reg]       = useState(null)
-  const [p1reg, setP1reg]       = useState(null)
-  const [step, setStep]         = useState(0)
-  const [log, setLog]           = useState([])
-  const [final, setFinal]       = useState(null)
+  const [counter, setCounter] = useState(5)
+  const [p0reg, setP0reg]     = useState(null)
+  const [p1reg, setP1reg]     = useState(null)
+  const [step, setStep]       = useState(0)
+  const [log, setLog]         = useState([])
+  const [final, setFinal]     = useState(null)
 
   const steps = [
     { process: 'P0', action: 'register1 = counter',     desc: 'P0 reads counter into register1', reg: 'p0', val: 5 },
@@ -129,33 +127,25 @@ function RaceConditionVisualizer() {
     { process: 'P1', action: 'register2 = counter',     desc: 'P1 reads counter (still 5!)',      reg: 'p1', val: 5 },
     { process: 'P1', action: 'register2 = register2-1', desc: 'P1 decrements register2 to 4',    reg: 'p1', val: 4 },
     { process: 'P0', action: 'counter = register1',     desc: 'P0 writes 6 back to counter',     reg: 'counter', val: 6 },
-    { process: 'P1', action: 'counter = register2',     desc: 'P1 writes 4 back — RACE! Expected 5, got 4', reg: 'counter', val: 4 },
+    { process: 'P1', action: 'counter = register2',     desc: 'P1 writes 4 — RACE! Expected 5',  reg: 'counter', val: 4 },
   ]
 
   function runStep() {
     if (step >= steps.length) return
     const s = steps[step]
-    setLog(function(l) { return [...l, s.process + ': ' + s.action + ' → ' + s.desc] })
+    setLog(function(l) { return [...l, s.process + ': ' + s.action + ' — ' + s.desc] })
     if (s.reg === 'p0') setP0reg(s.val)
     else if (s.reg === 'p1') setP1reg(s.val)
-    else if (s.reg === 'counter') {
-      setCounter(s.val)
-      if (step === steps.length - 1) setFinal(s.val)
-    }
+    else if (s.reg === 'counter') { setCounter(s.val); if (step === steps.length - 1) setFinal(s.val) }
     setStep(function(st) { return st + 1 })
   }
 
-  function reset() {
-    setCounter(5); setP0reg(null); setP1reg(null)
-    setStep(0); setLog([]); setFinal(null); setRunning(false)
-  }
+  function reset() { setCounter(5); setP0reg(null); setP1reg(null); setStep(0); setLog([]); setFinal(null) }
 
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, marginBottom: 24 }}>
       <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Race Condition Visualizer</h3>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-        counter starts at 5. P0 does counter++ and P1 does counter-- concurrently. Expected result: 5. See what actually happens.
-      </p>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>counter starts at 5. P0 does counter++ and P1 does counter-- concurrently. Expected: 5. See what actually happens.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 20 }}>
         {[
@@ -174,21 +164,15 @@ function RaceConditionVisualizer() {
 
       {final !== null && (
         <div style={{ background: '#ef444418', border: '1px solid #ef444444', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 14, color: '#ef4444', fontWeight: 600 }}>
-          RACE CONDITION! Expected counter = 5, got {final}. P1 overwrote P0's update!
+          RACE CONDITION! Expected counter = 5, got {final}. P1 overwrote P0 update!
         </div>
       )}
 
       <div style={{ background: '#0d1117', borderRadius: 8, padding: 12, marginBottom: 16, minHeight: 100, maxHeight: 160, overflowY: 'auto' }}>
         {log.length === 0
-          ? <div style={{ color: '#484f58', fontSize: 13 }}>Click "Next Step" to see the race condition unfold...</div>
+          ? <div style={{ color: '#484f58', fontSize: 13 }}>Click Next Step to see the race condition unfold...</div>
           : log.map(function(line, i) {
-            const isP0 = line.startsWith('P0')
-            const isRace = line.includes('RACE')
-            return (
-              <div key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: isRace ? '#ef4444' : isP0 ? '#3b82f6' : '#8b5cf6', lineHeight: 1.8, fontWeight: isRace ? 700 : 400 }}>
-                {line}
-              </div>
-            )
+            return <div key={i} style={{ fontFamily: 'monospace', fontSize: 12, color: line.startsWith('P0') ? '#3b82f6' : '#8b5cf6', lineHeight: 1.8 }}>{line}</div>
           })}
       </div>
 
@@ -202,7 +186,6 @@ function RaceConditionVisualizer() {
   )
 }
 
-// ── Peterson's Solution Visualizer ────────────────────────────
 function PetersonVisualizer() {
   const [step, setStep]   = useState(0)
   const [flag, setFlag]   = useState([false, false])
@@ -211,37 +194,31 @@ function PetersonVisualizer() {
   const [log, setLog]     = useState([])
 
   const steps = [
-    { proc: 0, desc: 'P0: flag[0] = true  (I want to enter)',     action: function() { setFlag([true, false]) } },
-    { proc: 0, desc: 'P0: turn = 1  (I give priority to P1)',     action: function() { setTurn(1) } },
-    { proc: 1, desc: 'P1: flag[1] = true  (I want to enter)',     action: function() { setFlag([true, true]) } },
-    { proc: 1, desc: 'P1: turn = 0  (I give priority to P0)',     action: function() { setTurn(0) } },
-    { proc: 0, desc: 'P0: checks while(flag[1] && turn==1) → FALSE (turn=0, P0 enters!)', action: function() { setInCS([true, false]) } },
-    { proc: 0, desc: 'P0: INSIDE critical section — executing',   action: function() {} },
-    { proc: 0, desc: 'P0: exits CS, flag[0] = false',             action: function() { setFlag([false, true]); setInCS([false, false]) } },
-    { proc: 1, desc: 'P1: while loop exits (flag[0]=false) → P1 enters!', action: function() { setInCS([false, true]) } },
-    { proc: 1, desc: 'P1: INSIDE critical section — executing',   action: function() {} },
-    { proc: 1, desc: 'P1: exits CS, flag[1] = false',             action: function() { setFlag([false, false]); setInCS([false, false]) } },
+    { proc: 0, desc: 'P0: flag[0] = true (I want to enter)',    action: function() { setFlag([true, false]) } },
+    { proc: 0, desc: 'P0: turn = 1 (I give priority to P1)',    action: function() { setTurn(1) } },
+    { proc: 1, desc: 'P1: flag[1] = true (I want to enter)',    action: function() { setFlag([true, true]) } },
+    { proc: 1, desc: 'P1: turn = 0 (I give priority to P0)',    action: function() { setTurn(0) } },
+    { proc: 0, desc: 'P0: while(flag[1] && turn==1) is FALSE — turn=0, P0 enters!', action: function() { setInCS([true, false]) } },
+    { proc: 0, desc: 'P0: INSIDE critical section',             action: function() {} },
+    { proc: 0, desc: 'P0: exits CS, flag[0] = false',           action: function() { setFlag([false, true]); setInCS([false, false]) } },
+    { proc: 1, desc: 'P1: while loop exits (flag[0]=false) — P1 enters!', action: function() { setInCS([false, true]) } },
+    { proc: 1, desc: 'P1: INSIDE critical section',             action: function() {} },
+    { proc: 1, desc: 'P1: exits CS, flag[1] = false',           action: function() { setFlag([false, false]); setInCS([false, false]) } },
   ]
 
   function nextStep() {
     if (step >= steps.length) return
-    const s = steps[step]
-    s.action()
-    setLog(function(l) { return [...l, { proc: s.proc, desc: s.desc }] })
+    steps[step].action()
+    setLog(function(l) { return [...l, { proc: steps[step].proc, desc: steps[step].desc }] })
     setStep(function(st) { return st + 1 })
   }
 
-  function reset() {
-    setStep(0); setFlag([false, false]); setTurn(0)
-    setInCS([false, false]); setLog([])
-  }
+  function reset() { setStep(0); setFlag([false, false]); setTurn(0); setInCS([false, false]); setLog([]) }
 
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, marginBottom: 24 }}>
       <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Peterson's Solution Visualizer</h3>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-        Step through Peterson's solution for 2 processes — see how flag[] and turn guarantee mutual exclusion.
-      </p>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Step through Peterson's solution — see how flag[] and turn guarantee mutual exclusion.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
         {[
@@ -251,7 +228,7 @@ function PetersonVisualizer() {
           { label: 'In CS',   value: inCS[0] ? 'P0' : inCS[1] ? 'P1' : 'None', color: inCS[0] || inCS[1] ? '#ef4444' : '#10b981' },
         ].map(function(b) {
           return (
-            <div key={b.label} style={{ background: 'var(--bg-secondary)', border: '2px solid ' + b.color + '44', borderRadius: 10, padding: '12px', textAlign: 'center' }}>
+            <div key={b.label} style={{ background: 'var(--bg-secondary)', border: '2px solid ' + b.color + '44', borderRadius: 10, padding: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{b.label}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: b.color }}>{String(b.value)}</div>
             </div>
@@ -265,11 +242,11 @@ function PetersonVisualizer() {
           return (
             <div key={i} style={{ background: inCS[i] ? color + '22' : 'var(--bg-secondary)', border: '2px solid ' + (inCS[i] ? color : 'var(--border)'), borderRadius: 10, padding: 14 }}>
               <div style={{ fontWeight: 700, color: color, marginBottom: 8 }}>Process P{i}</div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+              <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                 <div>flag[{i}] = true;</div>
                 <div>turn = {1 - i};</div>
-                <div>while (flag[{1 - i}] && turn == {1 - i});</div>
-                <div style={{ color: inCS[i] ? color : 'inherit', fontWeight: inCS[i] ? 700 : 400 }}>{'/* critical section */'}</div>
+                <div>while (flag[{1 - i}] &amp;&amp; turn == {1 - i});</div>
+                <div style={{ color: inCS[i] ? color : 'inherit', fontWeight: inCS[i] ? 700 : 400 }}>critical section</div>
                 <div>flag[{i}] = false;</div>
               </div>
               {inCS[i] && <div style={{ marginTop: 8, fontSize: 12, color: color, fontWeight: 700 }}>IN CRITICAL SECTION</div>}
@@ -282,11 +259,7 @@ function PetersonVisualizer() {
         {log.length === 0
           ? <div style={{ color: '#484f58', fontSize: 13 }}>Click Next Step to begin...</div>
           : log.map(function(line, i) {
-            return (
-              <div key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: line.proc === 0 ? '#3b82f6' : '#8b5cf6', lineHeight: 1.8 }}>
-                {line.desc}
-              </div>
-            )
+            return <div key={i} style={{ fontFamily: 'monospace', fontSize: 12, color: line.proc === 0 ? '#3b82f6' : '#8b5cf6', lineHeight: 1.8 }}>{line.desc}</div>
           })}
       </div>
 
@@ -300,21 +273,19 @@ function PetersonVisualizer() {
   )
 }
 
-// ── Semaphore Simulator ────────────────────────────────────────
 function SemaphoreSimulator() {
-  const [semValue, setSemValue] = useState(1)
-  const [initVal, setInitVal]   = useState(1)
+  const [semValue, setSemValue]   = useState(1)
+  const [initVal, setInitVal]     = useState(1)
   const [waitQueue, setWaitQueue] = useState([])
-  const [log, setLog]           = useState([])
-  const [nextPid, setNextPid]   = useState(3)
+  const [log, setLog]             = useState([])
 
   function doWait(pid) {
     if (semValue > 0) {
       setSemValue(function(v) { return v - 1 })
-      addLog(pid + ': wait() — semaphore was ' + semValue + ' → ' + (semValue - 1) + '. Lock acquired!', '#10b981')
+      addLog(pid + ': wait() — semaphore was ' + semValue + ', now ' + (semValue - 1) + '. Lock acquired!', '#10b981')
     } else {
       setWaitQueue(function(q) { return [...q, pid] })
-      addLog(pid + ': wait() — semaphore is 0. ' + pid + ' BLOCKED and added to wait queue.', '#ef4444')
+      addLog(pid + ': wait() — semaphore is 0. ' + pid + ' BLOCKED, added to wait queue.', '#ef4444')
     }
   }
 
@@ -325,35 +296,21 @@ function SemaphoreSimulator() {
       addLog(pid + ': signal() — waking up ' + next + ' from wait queue.', '#f59e0b')
     } else {
       setSemValue(function(v) { return v + 1 })
-      addLog(pid + ': signal() — semaphore was ' + semValue + ' → ' + (semValue + 1) + '. Lock released.', '#3b82f6')
+      addLog(pid + ': signal() — semaphore was ' + semValue + ', now ' + (semValue + 1) + '. Released.', '#3b82f6')
     }
   }
 
-  function addLog(msg, color) {
-    setLog(function(l) { return [...l, { msg, color }] })
-  }
+  function addLog(msg, color) { setLog(function(l) { return [...l, { msg, color }] }) }
 
-  function reset() {
-    setSemValue(initVal)
-    setWaitQueue([])
-    setLog([])
-  }
-
-  function addProcess() {
-    const pid = 'P' + nextPid
-    setNextPid(function(n) { return n + 1 })
-    addLog(pid + ' arrived and wants to enter critical section.', '#8b5cf6')
-  }
+  function reset() { setSemValue(initVal); setWaitQueue([]); setLog([]) }
 
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, marginBottom: 24 }}>
       <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Semaphore Simulator</h3>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-        Interactively call wait() and signal() on a semaphore and see how blocking works.
-      </p>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Interactively call wait() and signal() — see how blocking works.</p>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Initial value:</div>
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Initial value:</span>
         {[0, 1, 2, 3].map(function(v) {
           return (
             <button key={v} onClick={function() { setInitVal(v); setSemValue(v); setWaitQueue([]); setLog([]) }} style={{ background: initVal === v ? '#ef4444' : 'var(--bg-secondary)', color: initVal === v ? 'white' : 'var(--text-secondary)', border: '1px solid ' + (initVal === v ? '#ef4444' : 'var(--border)'), padding: '4px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
@@ -367,20 +324,14 @@ function SemaphoreSimulator() {
         <div style={{ background: semValue > 0 ? '#10b98118' : '#ef444418', border: '2px solid ' + (semValue > 0 ? '#10b981' : '#ef4444'), borderRadius: 12, padding: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Semaphore Value</div>
           <div style={{ fontSize: 48, fontWeight: 800, color: semValue > 0 ? '#10b981' : '#ef4444' }}>{semValue}</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: semValue > 0 ? '#10b981' : '#ef4444', marginTop: 4 }}>
-            {semValue > 0 ? 'AVAILABLE' : 'LOCKED'}
-          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: semValue > 0 ? '#10b981' : '#ef4444', marginTop: 4 }}>{semValue > 0 ? 'AVAILABLE' : 'LOCKED'}</div>
         </div>
         <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Wait Queue ({waitQueue.length} blocked)</div>
           {waitQueue.length === 0
-            ? <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Empty — no blocked processes</div>
+            ? <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Empty</div>
             : waitQueue.map(function(pid) {
-              return (
-                <div key={pid} style={{ background: '#ef444422', border: '1px solid #ef444444', borderRadius: 6, padding: '4px 12px', marginBottom: 6, fontSize: 13, color: '#ef4444', fontWeight: 600 }}>
-                  {pid} — BLOCKED
-                </div>
-              )
+              return <div key={pid} style={{ background: '#ef444422', border: '1px solid #ef444444', borderRadius: 6, padding: '4px 12px', marginBottom: 6, fontSize: 13, color: '#ef4444', fontWeight: 600 }}>{pid} — BLOCKED</div>
             })}
         </div>
       </div>
@@ -389,12 +340,8 @@ function SemaphoreSimulator() {
         {['P1', 'P2'].map(function(pid) {
           return (
             <div key={pid} style={{ display: 'flex', gap: 8 }}>
-              <button onClick={function() { doWait(pid) }} style={{ background: '#ef444422', color: '#ef4444', border: '1px solid #ef444444', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                {pid}: wait()
-              </button>
-              <button onClick={function() { doSignal(pid) }} style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                {pid}: signal()
-              </button>
+              <button onClick={function() { doWait(pid) }} style={{ background: '#ef444422', color: '#ef4444', border: '1px solid #ef444444', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>{pid}: wait()</button>
+              <button onClick={function() { doSignal(pid) }} style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>{pid}: signal()</button>
             </div>
           )
         })}
@@ -405,11 +352,7 @@ function SemaphoreSimulator() {
         {log.length === 0
           ? <div style={{ color: '#484f58', fontSize: 13 }}>Click wait() or signal() to see what happens...</div>
           : log.map(function(line, i) {
-            return (
-              <div key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: line.color, lineHeight: 1.8 }}>
-                {line.msg}
-              </div>
-            )
+            return <div key={i} style={{ fontFamily: 'monospace', fontSize: 12, color: line.color, lineHeight: 1.8 }}>{line.msg}</div>
           })}
       </div>
     </div>
@@ -440,10 +383,10 @@ export default function Chapter6() {
           <h1 style={{ fontSize: 40, fontWeight: 800, color: 'var(--text-primary)' }}>Synchronization Tools</h1>
         </div>
         <p style={{ fontSize: 17, color: 'var(--text-secondary)', maxWidth: 700, lineHeight: 1.7 }}>
-          How to coordinate concurrent processes safely — from race conditions to mutexes, semaphores, and monitors. Aligned with your lecture slides.
+          How to coordinate concurrent processes safely — from race conditions to mutexes, semaphores, and monitors.
         </p>
         <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
-          {['Race Condition Visualizer', 'Peterson\'s Solution', 'Semaphore Simulator', 'Mutex Locks', 'Monitors'].map(function(f) {
+          {['Race Condition Visualizer', "Peterson's Solution", 'Semaphore Simulator', 'Mutex Locks', 'Monitors'].map(function(f) {
             return <span key={f} style={{ fontSize: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid #ef444433', color: '#ef4444', padding: '4px 14px', borderRadius: 20 }}>{f}</span>
           })}
         </div>
@@ -473,17 +416,17 @@ export default function Chapter6() {
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>The Producer-Consumer Problem</h3>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
-                Suppose we want to count the number of full buffers using an integer <strong style={{ color: 'var(--text-primary)' }}>counter</strong>. The producer increments it after producing, the consumer decrements it after consuming. Both operations seem simple — but they are NOT atomic.
+                Suppose we track full buffers with an integer <strong style={{ color: 'var(--text-primary)' }}>counter</strong>. The producer increments it, the consumer decrements it. Both operations look simple — but they are NOT atomic at the machine level.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div style={{ background: '#0d1117', border: '1px solid #3b82f644', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', marginBottom: 8 }}>Producer</div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                     <div>while (true) {'{'}</div>
                     <div style={{ paddingLeft: 16, color: '#8b949e' }}>/* produce item */</div>
-                    <div style={{ paddingLeft: 16 }}>while (counter == BUFFER_SIZE)</div>
-                    <div style={{ paddingLeft: 32, color: '#8b949e' }}>; /* do nothing */</div>
+                    <div style={{ paddingLeft: 16 }}>while (counter==BUFFER_SIZE)</div>
+                    <div style={{ paddingLeft: 32, color: '#8b949e' }}>; /* wait */</div>
                     <div style={{ paddingLeft: 16 }}>buffer[in] = next_produced;</div>
                     <div style={{ paddingLeft: 16 }}>in = (in+1) % BUFFER_SIZE;</div>
                     <div style={{ paddingLeft: 16, color: '#f59e0b' }}>counter++;</div>
@@ -492,59 +435,57 @@ export default function Chapter6() {
                 </div>
                 <div style={{ background: '#0d1117', border: '1px solid #8b5cf644', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Consumer</div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                     <div>while (true) {'{'}</div>
                     <div style={{ paddingLeft: 16 }}>while (counter == 0)</div>
-                    <div style={{ paddingLeft: 32, color: '#8b949e' }}>; /* do nothing */</div>
+                    <div style={{ paddingLeft: 32, color: '#8b949e' }}>; /* wait */</div>
                     <div style={{ paddingLeft: 16 }}>next_consumed = buffer[out];</div>
                     <div style={{ paddingLeft: 16 }}>out = (out+1) % BUFFER_SIZE;</div>
                     <div style={{ paddingLeft: 16, color: '#f59e0b' }}>counter--;</div>
-                    <div style={{ paddingLeft: 16, color: '#8b949e' }}>/* consume item */</div>
+                    <div style={{ paddingLeft: 16, color: '#8b949e' }}>/* consume */</div>
                     <div>{'}'}</div>
                   </div>
                 </div>
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Why counter++ is NOT Atomic</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Why counter++ is NOT Atomic</h3>
               <InfoBox color="#f59e0b">
-                counter++ looks like one operation but compiles to THREE machine instructions:
-                <br /><br />
-                <strong>register1 = counter</strong> (read)<br />
-                <strong>register1 = register1 + 1</strong> (increment)<br />
-                <strong>counter = register1</strong> (write)
-                <br /><br />
-                If a context switch happens between any of these steps — disaster!
+                counter++ compiles to THREE machine instructions:
+                <br /><strong>register1 = counter</strong> (read)
+                <br /><strong>register1 = register1 + 1</strong> (increment)
+                <br /><strong>counter = register1</strong> (write)
+                <br /><br />If a context switch happens between any step — data corruption!
               </InfoBox>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Race Condition — Step by Step</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Race Condition Step-by-Step</h3>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>Initial value: counter = 5</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>Initial: counter = 5</div>
                 {[
-                  { step: 'S0', proc: 'Producer', action: 'register1 = counter', result: 'register1 = 5', color: '#3b82f6' },
-                  { step: 'S1', proc: 'Producer', action: 'register1 = register1 + 1', result: 'register1 = 6', color: '#3b82f6' },
-                  { step: 'S2', proc: 'Consumer', action: 'register2 = counter', result: 'register2 = 5 (stale!)', color: '#8b5cf6' },
-                  { step: 'S3', proc: 'Consumer', action: 'register2 = register2 - 1', result: 'register2 = 4', color: '#8b5cf6' },
-                  { step: 'S4', proc: 'Producer', action: 'counter = register1', result: 'counter = 6', color: '#3b82f6' },
-                  { step: 'S5', proc: 'Consumer', action: 'counter = register2', result: 'counter = 4 ← WRONG! Expected 5', color: '#ef4444' },
+                  { step: 'S0', proc: 'Producer', action: 'register1 = counter',        result: 'register1 = 5',        color: '#3b82f6' },
+                  { step: 'S1', proc: 'Producer', action: 'register1 = register1 + 1',  result: 'register1 = 6',        color: '#3b82f6' },
+                  { step: 'S2', proc: 'Consumer', action: 'register2 = counter',        result: 'register2 = 5 (stale)', color: '#8b5cf6' },
+                  { step: 'S3', proc: 'Consumer', action: 'register2 = register2 - 1',  result: 'register2 = 4',        color: '#8b5cf6' },
+                  { step: 'S4', proc: 'Producer', action: 'counter = register1',        result: 'counter = 6',          color: '#3b82f6' },
+                  { step: 'S5', proc: 'Consumer', action: 'counter = register2',        result: 'counter = 4 WRONG! Expected 5', color: '#ef4444' },
                 ].map(function(s) {
                   return (
-                    <div key={s.step} style={{ display: 'flex', gap: 12, marginBottom: 8, alignItems: 'center' }}>
+                    <div key={s.step} style={{ display: 'flex', gap: 12, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{ background: s.color + '22', color: s.color, padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, minWidth: 28, textAlign: 'center' }}>{s.step}</span>
                       <span style={{ fontSize: 12, color: s.color, fontWeight: 600, minWidth: 70 }}>{s.proc}</span>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{s.action}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{s.action}</span>
                       <span style={{ fontSize: 12, color: s.step === 'S5' ? '#ef4444' : 'var(--text-muted)', fontWeight: s.step === 'S5' ? 700 : 400 }}>{s.result}</span>
                     </div>
                   )
                 })}
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Interactive Race Condition Demo</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Interactive Demo</h3>
               <RaceConditionVisualizer />
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>Race conditions in real systems:</strong> The Therac-25 radiation therapy machine (1985-87) had a race condition in its software. When an operator typed fast enough, the race condition disabled safety checks. Six patients received massive radiation overdoses; at least three died. This is one of the most cited software safety failures in history.
+                <strong style={{ color: 'var(--text-primary)' }}>Race conditions in real systems:</strong> The Therac-25 radiation therapy machine (1985-87) had a race condition in its software. When an operator typed fast, the race condition disabled safety checks — six patients received massive radiation overdoses. This is one of the most cited software safety failures in history.
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Why are race conditions hard to find?</strong> They only manifest when a context switch happens at exactly the wrong moment. In testing, this may never happen. In production with heavier load, it happens regularly. The bug is non-deterministic — it may appear once a day, once a week, or only under specific hardware/load conditions. This makes it nearly impossible to reproduce and debug.
+                <strong style={{ color: 'var(--text-primary)' }}>Why race conditions are hard to find:</strong> They only appear when a context switch happens at exactly the wrong moment. In testing this may never occur. In production under heavy load it happens regularly. The bug is non-deterministic — nearly impossible to reproduce and debug consistently.
               </LearnMore>
 
               <NavButtons next={function() { setActive('critical') }} nextLabel="6.2 Critical Section →" />
@@ -557,42 +498,27 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Defining the problem formally and the three requirements for a correct solution.</p>
 
               <InfoBox color="#3b82f6">
-                Consider a system of n processes. Each process has a <strong>critical section</strong> — a segment of code where it accesses shared data. The <strong>Critical Section Problem</strong> is to design a protocol so that processes can cooperate safely.
+                Consider a system of n processes. Each has a <strong>critical section</strong> — code that accesses shared data. The <strong>Critical Section Problem</strong> is to design a protocol so that processes cooperate safely.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Structure of a Process</h3>
               <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: 16, marginBottom: 24 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#e6edf3', lineHeight: 2 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#e6edf3', lineHeight: 2 }}>
                   <div>do {'{'}</div>
                   <div style={{ paddingLeft: 20, color: '#3b82f6' }}>entry section</div>
-                  <div style={{ paddingLeft: 20, background: '#ef444422', borderRadius: 4, padding: '4px 16px', margin: '4px 0' }}>
-                    <span style={{ color: '#ef4444', fontWeight: 700 }}>critical section</span>
-                    <span style={{ color: '#8b949e', marginLeft: 16 }}>{'/* shared data accessed here */'}</span>
-                  </div>
+                  <div style={{ paddingLeft: 20, background: '#ef444422', borderRadius: 4, padding: '4px 16px', margin: '4px 0', color: '#ef4444', fontWeight: 700 }}>critical section</div>
                   <div style={{ paddingLeft: 20, color: '#10b981' }}>exit section</div>
                   <div style={{ paddingLeft: 20, color: '#8b949e' }}>remainder section</div>
                   <div>{'}'} while (true);</div>
                 </div>
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Three Requirements for a Correct Solution</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Three Requirements</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
                 {[
-                  {
-                    n: 1, name: 'Mutual Exclusion', color: '#ef4444',
-                    desc: 'If process Pi is executing in its critical section, then NO other processes can be executing in their critical sections.',
-                    example: 'Only one person in the bathroom at a time.',
-                  },
-                  {
-                    n: 2, name: 'Progress', color: '#f59e0b',
-                    desc: 'If no process is executing in its critical section AND some processes wish to enter, then the selection of which process enters CANNOT be postponed indefinitely. Only processes not in their remainder section can participate in the decision.',
-                    example: 'If nobody is in the bathroom, someone waiting must be allowed in.',
-                  },
-                  {
-                    n: 3, name: 'Bounded Waiting', color: '#10b981',
-                    desc: 'A BOUND must exist on the number of times other processes can enter their critical sections after a process has made a request to enter, before that request is granted. No starvation.',
-                    example: 'You can\'t be made to wait forever while others keep cutting in line.',
-                  },
+                  { n: 1, name: 'Mutual Exclusion', color: '#ef4444', desc: 'If process Pi is executing in its critical section, NO other processes can be executing in their critical sections.', example: 'Only one person in the bathroom at a time.' },
+                  { n: 2, name: 'Progress', color: '#f59e0b', desc: 'If no process is in its critical section and some wish to enter, the selection cannot be postponed indefinitely. Only processes not in their remainder section participate in the decision.', example: 'If nobody is in the bathroom, someone waiting must be allowed in.' },
+                  { n: 3, name: 'Bounded Waiting', color: '#10b981', desc: 'A bound must exist on the number of times other processes can enter their critical sections after a process has made a request, before that request is granted. No starvation.', example: "You can't be made to wait forever while others keep cutting in line." },
                 ].map(function(r) {
                   return (
                     <div key={r.n} style={{ background: 'var(--bg-card)', border: '1px solid ' + r.color + '44', borderLeft: '4px solid ' + r.color, borderRadius: 10, padding: 20 }}>
@@ -613,7 +539,7 @@ export default function Chapter6() {
                   <div style={{ fontWeight: 700, color: '#10b981', marginBottom: 8 }}>Preemptive Kernel</div>
                   <ul style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 16 }}>
                     <li>Allows preemption in kernel mode</li>
-                    <li>More complex — must handle race conditions in kernel</li>
+                    <li>More complex — must handle race conditions</li>
                     <li>Better responsiveness for real-time</li>
                     <li>Linux 2.6+, Windows</li>
                   </ul>
@@ -630,9 +556,9 @@ export default function Chapter6() {
               </div>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>Why mutual exclusion alone is not enough:</strong> Consider two processes P0 and P1 both trying to enter their critical sections. If we just check "is anyone in the CS?" before entering, we can have: P0 checks — no one in CS. P1 checks — no one in CS. P0 enters CS. P1 enters CS. Both in CS simultaneously — mutual exclusion violated. The entry section must be atomic.
+                <strong style={{ color: 'var(--text-primary)' }}>Why mutual exclusion alone is not enough:</strong> Even if we check "is anyone in the CS?" before entering, two processes can both check simultaneously, both see nobody, and both enter. The entry section itself must be atomic. This is why hardware support (test-and-set, compare-and-swap) is needed — software alone cannot guarantee atomicity on modern CPUs.
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Livelock vs deadlock:</strong> Deadlock = processes stuck, not moving. Livelock = processes keep changing state in response to each other but make no progress. Example: two people in a corridor, both stepping aside the same direction repeatedly. Both keep moving but never pass. Livelock satisfies "progress" (processes can change state) but violates "bounded waiting" (they never enter the CS).
+                <strong style={{ color: 'var(--text-primary)' }}>Livelock vs deadlock:</strong> Deadlock means processes are stuck, not running. Livelock means processes keep changing state but make no progress — like two people in a corridor both stepping aside the same way repeatedly. Both keep moving but never pass. Livelock satisfies progress (processes change state) but violates bounded waiting (they never enter the CS).
               </LearnMore>
 
               <NavButtons prev={function() { setActive('background') }} prevLabel="← 6.1 Background" next={function() { setActive('peterson') }} nextLabel="6.3 Peterson's Solution →" />
@@ -642,10 +568,10 @@ export default function Chapter6() {
           {active === 'peterson' && (
             <div>
               <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>6.3 Peterson's Solution</h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>A classic software solution for two processes — elegant but limited.</p>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>A classic software solution for two processes — elegant but limited on modern hardware.</p>
 
               <InfoBox color="#8b5cf6">
-                Peterson's Solution is a classic software-only solution for the critical section problem for <strong>two processes</strong>. It uses two shared variables: <strong>int turn</strong> (whose turn it is) and <strong>boolean flag[2]</strong> (whether each process wants to enter). Not guaranteed to work on modern architectures due to instruction reordering.
+                Peterson's Solution is a software-only solution for two processes. Uses two shared variables: <strong>int turn</strong> (whose turn it is) and <strong>boolean flag[2]</strong> (whether each process wants to enter). Not guaranteed to work on modern architectures due to instruction reordering.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>The Algorithm</h3>
@@ -656,15 +582,14 @@ export default function Chapter6() {
                   return (
                     <div key={i} style={{ background: '#0d1117', border: '1px solid ' + color + '44', borderRadius: 8, padding: 14 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: color, marginBottom: 8 }}>Process P{i}</div>
-                      <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                         <div>while (true) {'{'}</div>
                         <div style={{ paddingLeft: 16, color: '#f59e0b' }}>flag[{i}] = true;</div>
                         <div style={{ paddingLeft: 16, color: '#f59e0b' }}>turn = {j};</div>
-                        <div style={{ paddingLeft: 16 }}>while (flag[{j}] {'&&'} turn == {j})</div>
-                        <div style={{ paddingLeft: 32, color: '#8b949e' }}>; /* busy wait */</div>
-                        <div style={{ paddingLeft: 16, color: '#ef4444' }}>{'/* critical section */'}</div>
+                        <div style={{ paddingLeft: 16 }}>while (flag[{j}] &amp;&amp; turn=={j});</div>
+                        <div style={{ paddingLeft: 16, color: '#ef4444' }}>/* critical section */</div>
                         <div style={{ paddingLeft: 16, color: '#10b981' }}>flag[{i}] = false;</div>
-                        <div style={{ paddingLeft: 16, color: '#8b949e' }}>{'/* remainder */'}</div>
+                        <div style={{ paddingLeft: 16, color: '#8b949e' }}>/* remainder */</div>
                         <div>{'}'}</div>
                       </div>
                     </div>
@@ -672,34 +597,34 @@ export default function Chapter6() {
                 })}
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Why It Works</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Why It Works — Proof</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {[
-                  { req: 'Mutual Exclusion', color: '#ef4444', proof: 'Pi enters CS only if flag[j]=false OR turn=i. If both want to enter: flag[0]=flag[1]=true. P0 enters CS only if turn=0, P1 only if turn=1. turn can only be 0 or 1 — so only one enters.' },
-                  { req: 'Progress', color: '#f59e0b', proof: 'If P0 wants to enter and P1 doesn\'t (flag[1]=false), P0 exits the while loop immediately. Progress is satisfied.' },
-                  { req: 'Bounded Waiting', color: '#10b981', proof: 'After P0 sets turn=1 and waits, P1 can enter at most once before P0 gets in (when P1 exits and sets flag[1]=false, or when turn changes).' },
+                  { req: 'Mutual Exclusion', color: '#ef4444', proof: 'Pi enters CS only if flag[j]=false OR turn=i. If both want to enter: flag[0]=flag[1]=true. P0 enters only if turn=0, P1 only if turn=1. turn is either 0 or 1 — so only one can enter.' },
+                  { req: 'Progress', color: '#f59e0b', proof: 'If P0 wants to enter and P1 does not (flag[1]=false), P0 exits the while loop immediately. Progress is satisfied.' },
+                  { req: 'Bounded Waiting', color: '#10b981', proof: 'After P0 sets turn=1 and waits, P1 can enter at most once before P0 gets in — when P1 exits it sets flag[1]=false.' },
                 ].map(function(r) {
                   return (
                     <div key={r.req} style={{ background: 'var(--bg-card)', border: '1px solid ' + r.color + '33', borderRadius: 8, padding: 14 }}>
-                      <div style={{ fontWeight: 700, color: r.color, marginBottom: 6, fontSize: 13 }}>{r.req}</div>
+                      <div style={{ fontWeight: 700, color: r.color, marginBottom: 6, fontSize: 13 }}>{r.req} ✓</div>
                       <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{r.proof}</div>
                     </div>
                   )
                 })}
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Interactive Peterson's Solution</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Interactive Visualizer</h3>
               <PetersonVisualizer />
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Why It Fails on Modern CPUs</h3>
               <InfoBox color="#ef4444">
-                Modern CPUs and compilers <strong>reorder instructions</strong> for performance. Peterson's relies on strict instruction ordering. If the CPU reorders flag=true and turn=j, both processes might see no one wants to enter and both proceed into the CS simultaneously. Memory barriers (fences) can fix this but add overhead.
+                Modern CPUs and compilers <strong>reorder instructions</strong> for performance. Peterson's relies on strict ordering. If the CPU reorders flag=true and turn=j, both processes might see nobody wants to enter and both proceed into the CS simultaneously — violating mutual exclusion. Memory barriers fix this but add overhead.
               </InfoBox>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>The reordering problem in detail:</strong> Processors use out-of-order execution and store buffers. When P0 writes flag[0]=true and then turn=1, these writes may not be visible to P1 in that order. P1 might see turn=1 but flag[0]=false, and think P0 doesn't want to enter — violating mutual exclusion. This is why hardware synchronization primitives (test-and-set, compare-and-swap) are needed.
+                <strong style={{ color: 'var(--text-primary)' }}>The reordering problem:</strong> Processors use out-of-order execution and store buffers. When P0 writes flag[0]=true then turn=1, these writes may not be visible to P1 in that order. P1 might see turn=1 but flag[0]=false — thinking P0 does not want to enter. This violates mutual exclusion. Hardware primitives like test-and-set are needed because they are guaranteed atomic.
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Memory barriers:</strong> A memory barrier (fence) instruction forces all previous memory operations to complete before any subsequent ones begin. Adding memory_barrier() between the flag and turn assignments in Peterson's Solution fixes the reordering problem but with performance cost. Modern x86 CPUs have MFENCE, LFENCE, SFENCE instructions for this.
+                <strong style={{ color: 'var(--text-primary)' }}>Memory barriers:</strong> A memory barrier (fence) instruction forces all previous memory operations to complete before any subsequent ones. Adding memory_barrier() between the flag and turn assignments in Peterson's Solution fixes the reordering problem. Modern x86 CPUs have MFENCE, LFENCE, SFENCE instructions for this purpose.
               </LearnMore>
 
               <NavButtons prev={function() { setActive('critical') }} prevLabel="← 6.2 Critical Section" next={function() { setActive('hardware') }} nextLabel="6.4 Hardware Support →" />
@@ -712,34 +637,33 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Atomic hardware instructions that make synchronization reliable and fast.</p>
 
               <InfoBox color="#06b6d4">
-                Many systems provide <strong>hardware support</strong> for implementing critical sections. We will look at three forms: <strong>Memory Barriers</strong>, <strong>Hardware Instructions</strong> (test-and-set, compare-and-swap), and <strong>Atomic Variables</strong>.
+                Many systems provide <strong>hardware support</strong> for critical sections. Three forms: <strong>Memory Barriers</strong>, <strong>Hardware Instructions</strong> (test-and-set, compare-and-swap), and <strong>Atomic Variables</strong>.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>1. Memory Barriers</h3>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
-                A <strong style={{ color: 'var(--text-primary)' }}>memory barrier</strong> (fence) forces any change in memory to be propagated (made visible) to all other processors before the barrier. Ensures ordering of memory operations.
+                A <strong style={{ color: 'var(--text-primary)' }}>memory barrier</strong> forces any memory change to be propagated to all other processors. Ensures ordering of memory operations across cores.
               </p>
               <div style={{ background: '#0d1117', border: '1px solid #06b6d444', borderRadius: 8, padding: 14, marginBottom: 24 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                   <div style={{ color: '#8b949e' }}>/* Thread 1 — with memory barrier */</div>
                   <div>while (!flag)</div>
-                  <div style={{ paddingLeft: 20, color: '#06b6d4' }}>memory_barrier(); <span style={{ color: '#8b949e' }}>/* ensure flag is fresh */</span></div>
+                  <div style={{ paddingLeft: 20, color: '#06b6d4' }}>memory_barrier();</div>
                   <div>print x; <span style={{ color: '#8b949e' }}>/* guaranteed to see latest x */</span></div>
                   <div></div>
                   <div style={{ color: '#8b949e' }}>/* Thread 2 — with memory barrier */</div>
                   <div>x = 100;</div>
-                  <div style={{ color: '#06b6d4' }}>memory_barrier(); <span style={{ color: '#8b949e' }}>/* ensure x written before flag */</span></div>
+                  <div style={{ color: '#06b6d4' }}>memory_barrier();</div>
                   <div>flag = true;</div>
                 </div>
               </div>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>2. Hardware Instructions</h3>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div>
                   <div style={{ fontWeight: 700, color: '#3b82f6', marginBottom: 8, fontSize: 14 }}>test_and_set()</div>
                   <div style={{ background: '#0d1117', border: '1px solid #3b82f644', borderRadius: 8, padding: 12, marginBottom: 8 }}>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
                       <div>boolean test_and_set(boolean *target) {'{'}</div>
                       <div style={{ paddingLeft: 16 }}>boolean rv = *target;</div>
                       <div style={{ paddingLeft: 16 }}>*target = true;</div>
@@ -749,9 +673,9 @@ export default function Chapter6() {
                   </div>
                   <div style={{ background: '#0d1117', border: '1px solid #3b82f644', borderRadius: 8, padding: 12 }}>
                     <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 4 }}>Usage (lock=false initially):</div>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
                       <div>do {'{'}</div>
-                      <div style={{ paddingLeft: 16 }}>while (test_and_set(&lock))</div>
+                      <div style={{ paddingLeft: 16 }}>while (test_and_set(&amp;lock))</div>
                       <div style={{ paddingLeft: 32 }}>; /* busy wait */</div>
                       <div style={{ paddingLeft: 16, color: '#ef4444' }}>/* critical section */</div>
                       <div style={{ paddingLeft: 16 }}>lock = false;</div>
@@ -762,7 +686,7 @@ export default function Chapter6() {
                 <div>
                   <div style={{ fontWeight: 700, color: '#8b5cf6', marginBottom: 8, fontSize: 14 }}>compare_and_swap()</div>
                   <div style={{ background: '#0d1117', border: '1px solid #8b5cf644', borderRadius: 8, padding: 12, marginBottom: 8 }}>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
                       <div>int compare_and_swap(</div>
                       <div style={{ paddingLeft: 16 }}>int *value, int expected, int new_val) {'{'}</div>
                       <div style={{ paddingLeft: 16 }}>int temp = *value;</div>
@@ -774,10 +698,10 @@ export default function Chapter6() {
                   </div>
                   <div style={{ background: '#0d1117', border: '1px solid #8b5cf644', borderRadius: 8, padding: 12 }}>
                     <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 4 }}>Usage (lock=0 initially):</div>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.8 }}>
                       <div>while (true) {'{'}</div>
                       <div style={{ paddingLeft: 16 }}>while (compare_and_swap(</div>
-                      <div style={{ paddingLeft: 32 }}>&lock, 0, 1) != 0)</div>
+                      <div style={{ paddingLeft: 32 }}>&amp;lock, 0, 1) != 0)</div>
                       <div style={{ paddingLeft: 32 }}>; /* busy wait */</div>
                       <div style={{ paddingLeft: 16, color: '#ef4444' }}>/* critical section */</div>
                       <div style={{ paddingLeft: 16 }}>lock = 0;</div>
@@ -789,10 +713,10 @@ export default function Chapter6() {
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>3. Atomic Variables</h3>
               <InfoBox color="#10b981">
-                Atomic variables provide atomic (uninterruptible) updates on basic data types. Built on compare-and-swap. The increment() operation on atomic variable <strong>sequence</strong> ensures it is incremented without interruption.
+                Atomic variables provide uninterruptible updates on basic data types. Built on compare-and-swap. The increment() operation ensures no interruption.
               </InfoBox>
               <div style={{ background: '#0d1117', border: '1px solid #10b98144', borderRadius: 8, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                   <div style={{ color: '#8b949e' }}>/* Atomic increment using CAS */</div>
                   <div>void increment(atomic_int *v) {'{'}</div>
                   <div style={{ paddingLeft: 20 }}>int temp;</div>
@@ -804,9 +728,9 @@ export default function Chapter6() {
               </div>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>Why CAS is more powerful than TAS:</strong> test-and-set can only set a boolean. compare-and-swap can atomically update any value if it matches an expected value. CAS is the foundation of all modern lock-free data structures — lock-free queues, stacks, hash maps. CAS is available as a single CPU instruction on x86 (CMPXCHG) and ARM (STREX/LDREX).
+                <strong style={{ color: 'var(--text-primary)' }}>Why CAS is more powerful than TAS:</strong> test-and-set can only set a boolean. compare-and-swap can atomically update any value if it matches an expected value. CAS is the foundation of all modern lock-free data structures. It is available as a single CPU instruction on x86 (CMPXCHG) and ARM (STREX/LDREX).
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>The ABA problem with CAS:</strong> CAS checks if a value equals "expected." But what if the value changed from A to B and back to A? CAS would succeed even though the data was modified. This is the ABA problem. Solutions: stamped references (add a version counter), hazard pointers, RCU (Read-Copy-Update). Lock-free programming is subtle and difficult to get right.
+                <strong style={{ color: 'var(--text-primary)' }}>The ABA problem with CAS:</strong> CAS checks if a value equals the expected value. But what if the value changed from A to B and back to A? CAS would succeed even though data was modified in between. Solutions include stamped references (adding a version counter) or hazard pointers. Lock-free programming is subtle and difficult to get right.
               </LearnMore>
 
               <NavButtons prev={function() { setActive('peterson') }} prevLabel="← 6.3 Peterson's" next={function() { setActive('mutex') }} nextLabel="6.5 Mutex Locks →" />
@@ -819,14 +743,14 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>The simplest and most common synchronization tool.</p>
 
               <InfoBox color="#f59e0b">
-                A <strong>mutex lock</strong> (mutual exclusion lock) is the simplest synchronization tool. Protect a critical section by first <strong>acquire()</strong> the lock, then <strong>release()</strong> it. A boolean variable indicates if the lock is available. Calls to acquire() and release() must be <strong>atomic</strong>.
+                A <strong>mutex lock</strong> protects a critical section by first calling <strong>acquire()</strong> then <strong>release()</strong>. A boolean variable indicates if the lock is available. Both calls must be <strong>atomic</strong> — implemented using hardware instructions.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Mutex Operations</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div style={{ background: '#0d1117', border: '1px solid #f59e0b44', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>acquire()</div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                     <div>acquire() {'{'}</div>
                     <div style={{ paddingLeft: 20 }}>while (!available)</div>
                     <div style={{ paddingLeft: 40, color: '#8b949e' }}>; /* busy wait */</div>
@@ -836,7 +760,7 @@ export default function Chapter6() {
                 </div>
                 <div style={{ background: '#0d1117', border: '1px solid #10b98144', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 8 }}>release()</div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                     <div>release() {'{'}</div>
                     <div style={{ paddingLeft: 20 }}>available = true;</div>
                     <div>{'}'}</div>
@@ -846,10 +770,10 @@ export default function Chapter6() {
 
               <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: 14, marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#8b949e', marginBottom: 8 }}>Usage pattern:</div>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                   <div>while (true) {'{'}</div>
                   <div style={{ paddingLeft: 20, color: '#f59e0b' }}>acquire lock</div>
-                  <div style={{ paddingLeft: 20, background: '#ef444422', borderRadius: 4, padding: '2px 16px', margin: '2px 0', color: '#ef4444' }}>critical section</div>
+                  <div style={{ paddingLeft: 20, color: '#ef4444' }}>critical section</div>
                   <div style={{ paddingLeft: 20, color: '#10b981' }}>release lock</div>
                   <div style={{ paddingLeft: 20, color: '#8b949e' }}>remainder section</div>
                   <div>{'}'}</div>
@@ -858,7 +782,7 @@ export default function Chapter6() {
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Spinlock — Busy Waiting</h3>
               <InfoBox color="#ef4444">
-                The mutex above uses <strong>busy waiting</strong> — the process loops continuously checking the lock. This is called a <strong>spinlock</strong>. It wastes CPU cycles on a single processor but can be efficient on multiprocessors for very short critical sections (no context switch overhead).
+                The mutex above uses <strong>busy waiting</strong> — the process loops continuously checking the lock. This is called a <strong>spinlock</strong>. Wastes CPU on single-processor but efficient on multiprocessors for very short critical sections (no context switch overhead).
               </InfoBox>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -866,7 +790,7 @@ export default function Chapter6() {
                   <div style={{ fontWeight: 700, color: '#10b981', marginBottom: 8 }}>Spinlock — Good for:</div>
                   <ul style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 16 }}>
                     <li>Multiprocessor systems</li>
-                    <li>Very short critical sections (microseconds)</li>
+                    <li>Very short critical sections</li>
                     <li>When context switch cost exceeds wait time</li>
                     <li>Kernel code where blocking is not allowed</li>
                   </ul>
@@ -877,35 +801,28 @@ export default function Chapter6() {
                     <li>Single processor systems</li>
                     <li>Long critical sections</li>
                     <li>When waiting process wastes a whole CPU core</li>
-                    <li>User-space applications (OS sleep is better)</li>
+                    <li>User-space applications</li>
                   </ul>
                 </div>
               </div>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>POSIX Mutex in C</h3>
               <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                   <div style={{ color: '#8b949e' }}>#include &lt;pthread.h&gt;</div>
-                  <div></div>
                   <div>pthread_mutex_t mutex;</div>
+                  <div>pthread_mutex_init(&amp;mutex, NULL);</div>
                   <div></div>
-                  <div style={{ color: '#8b949e' }}>/* create and initialize */</div>
-                  <div>pthread_mutex_init(&mutex, NULL);</div>
-                  <div></div>
-                  <div style={{ color: '#f59e0b' }}>/* acquire the lock */</div>
-                  <div>pthread_mutex_lock(&mutex);</div>
-                  <div></div>
+                  <div style={{ color: '#f59e0b' }}>pthread_mutex_lock(&amp;mutex);</div>
                   <div style={{ color: '#ef4444' }}>/* critical section */</div>
-                  <div></div>
-                  <div style={{ color: '#10b981' }}>/* release the lock */</div>
-                  <div>pthread_mutex_unlock(&mutex);</div>
+                  <div style={{ color: '#10b981' }}>pthread_mutex_unlock(&amp;mutex);</div>
                 </div>
               </div>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>Mutex vs Spinlock in Linux:</strong> Linux provides both. pthread_mutex_lock() in user space uses futex (fast userspace mutex) — first tries to acquire in user space (spinlock), if contended then calls the kernel to block (sleep). This gives the best of both worlds: fast path when uncontended, sleep when contended. spin_lock() in kernel space is a pure spinlock used when sleeping is not allowed (interrupt handlers, atomic contexts).
+                <strong style={{ color: 'var(--text-primary)' }}>Mutex vs Spinlock in Linux:</strong> pthread_mutex_lock() in user space uses futex (fast userspace mutex) — first tries to acquire in user space (spinlock), then calls the kernel to block if contended. This gives the best of both worlds: fast path when uncontended, sleep when contended. Kernel spin_lock() is a pure spinlock used when sleeping is not allowed (interrupt handlers, atomic contexts).
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Recursive mutexes:</strong> A regular mutex deadlocks if the same thread tries to acquire it twice. A recursive mutex (PTHREAD_MUTEX_RECURSIVE) allows the same thread to acquire it multiple times — it counts acquisitions and requires the same number of releases. Used in recursive functions that need locking. But they can hide design flaws — usually avoid if possible.
+                <strong style={{ color: 'var(--text-primary)' }}>Recursive mutexes:</strong> A regular mutex deadlocks if the same thread acquires it twice. A recursive mutex (PTHREAD_MUTEX_RECURSIVE) allows the same thread to acquire it multiple times — it counts acquisitions and requires the same number of releases. Useful in recursive functions but can hide design flaws.
               </LearnMore>
 
               <NavButtons prev={function() { setActive('hardware') }} prevLabel="← 6.4 Hardware" next={function() { setActive('semaphores') }} nextLabel="6.6 Semaphores →" />
@@ -918,16 +835,16 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>A more powerful synchronization tool that can solve a wider range of problems.</p>
 
               <InfoBox color="#3b82f6">
-                A <strong>semaphore</strong> S is an integer variable accessed only via two atomic operations: <strong>wait()</strong> (originally P()) and <strong>signal()</strong> (originally V()). More powerful than mutex — can control access to a pool of resources, not just one.
+                A <strong>semaphore</strong> S is an integer variable accessed only via two atomic operations: <strong>wait()</strong> (originally P()) and <strong>signal()</strong> (originally V()). More powerful than mutex — can control access to a pool of resources.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Semaphore Operations</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div style={{ background: '#0d1117', border: '1px solid #3b82f644', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', marginBottom: 8 }}>wait(S) — also called P()</div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                     <div>wait(S) {'{'}</div>
-                    <div style={{ paddingLeft: 20 }}>while (S {'<'}= 0)</div>
+                    <div style={{ paddingLeft: 20 }}>while (S &lt;= 0)</div>
                     <div style={{ paddingLeft: 40, color: '#8b949e' }}>; // busy wait</div>
                     <div style={{ paddingLeft: 20 }}>S--;</div>
                     <div>{'}'}</div>
@@ -935,7 +852,7 @@ export default function Chapter6() {
                 </div>
                 <div style={{ background: '#0d1117', border: '1px solid #10b98144', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 8 }}>signal(S) — also called V()</div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                     <div>signal(S) {'{'}</div>
                     <div style={{ paddingLeft: 20 }}>S++;</div>
                     <div>{'}'}</div>
@@ -947,81 +864,72 @@ export default function Chapter6() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div style={{ background: 'var(--bg-card)', border: '1px solid #3b82f644', borderRadius: 10, padding: 20 }}>
                   <div style={{ fontWeight: 700, color: '#3b82f6', marginBottom: 8 }}>Counting Semaphore</div>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 8 }}>
-                    Integer value can range over an unrestricted domain. Used to control access to a resource with multiple instances (e.g., 5 database connections).
-                  </p>
-                  <div style={{ fontSize: 12, color: '#3b82f6' }}>Init to: number of available resources</div>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 8 }}>Integer ranges over an unrestricted domain. Controls access to a resource with multiple instances — e.g., 5 database connections. Initialize to the number of available resources.</p>
                 </div>
                 <div style={{ background: 'var(--bg-card)', border: '1px solid #8b5cf644', borderRadius: 10, padding: 20 }}>
                   <div style={{ fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Binary Semaphore (Mutex)</div>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 8 }}>
-                    Value can only be 0 or 1. Same as a mutex lock. Used for mutual exclusion.
-                  </p>
-                  <div style={{ fontSize: 12, color: '#8b5cf6' }}>Init to: 1 (available)</div>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 8 }}>Value only 0 or 1. Same as a mutex lock. Used for mutual exclusion. Initialize to 1 (available).</p>
                 </div>
               </div>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Semaphore Usage — Ordering</h3>
               <InfoBox color="#f59e0b">
-                Semaphores can enforce <strong>ordering</strong> between statements. If S1 must happen before S2 across two processes, create a semaphore synch=0. P1 executes S1 then signal(synch). P2 executes wait(synch) then S2. S2 cannot proceed until S1 is done.
+                Semaphores can enforce <strong>ordering</strong> between statements. If S1 must happen before S2: create semaphore synch=0. P1 executes S1 then signal(synch). P2 executes wait(synch) then S2. S2 cannot proceed until S1 is done.
               </InfoBox>
               <div style={{ background: '#0d1117', border: '1px solid #f59e0b44', borderRadius: 8, padding: 14, marginBottom: 24 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
-                  <div style={{ color: '#8b949e' }}>/* Semaphore synch initialized to 0 */</div>
-                  <div></div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ color: '#8b949e' }}>/* synch initialized to 0 */</div>
                   <div style={{ color: '#3b82f6' }}>P1:                    P2:</div>
                   <div>S1;                    wait(synch);</div>
                   <div>signal(synch);         S2;</div>
-                  <div></div>
-                  <div style={{ color: '#8b949e' }}>/* S2 will always execute AFTER S1 */</div>
+                  <div style={{ color: '#8b949e' }}>/* S2 always executes AFTER S1 */</div>
                 </div>
               </div>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Semaphore with No Busy Waiting</h3>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
-                Instead of busy waiting, associate a <strong style={{ color: 'var(--text-primary)' }}>waiting queue</strong> with each semaphore. When wait() finds S {'<'}= 0, add process to waiting queue and <strong>block</strong> (sleep). When signal() runs, remove a process from queue and <strong>wakeup</strong>.
+                Instead of busy waiting, associate a <strong style={{ color: 'var(--text-primary)' }}>waiting queue</strong> with each semaphore. When wait() finds S less than or equal to 0, add process to queue and <strong>block</strong>. When signal() runs, remove a process from queue and <strong>wakeup</strong>.
               </p>
               <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
-                  <div style={{ color: '#8b949e' }}>/* Semaphore with waiting queue */</div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                   <div>typedef struct {'{'}</div>
                   <div style={{ paddingLeft: 20 }}>int value;</div>
-                  <div style={{ paddingLeft: 20 }}>struct process *list; <span style={{ color: '#8b949e' }}>/* waiting queue */</span></div>
+                  <div style={{ paddingLeft: 20 }}>struct process *list;</div>
                   <div>{'}'} semaphore;</div>
                   <div></div>
                   <div>wait(semaphore *S) {'{'}</div>
-                  <div style={{ paddingLeft: 20 }}>S-{'>'} value--;</div>
-                  <div style={{ paddingLeft: 20 }}>if (S-{'>'} value {'<'} 0) {'{'}</div>
-                  <div style={{ paddingLeft: 40 }}>add this process to S-{'>'} list;</div>
-                  <div style={{ paddingLeft: 40, color: '#ef4444' }}>block(); <span style={{ color: '#8b949e' }}>/* sleep */</span></div>
+                  <div style={{ paddingLeft: 20 }}>S-&gt;value--;</div>
+                  <div style={{ paddingLeft: 20 }}>if (S-&gt;value &lt; 0) {'{'}</div>
+                  <div style={{ paddingLeft: 40 }}>add this process to S-&gt;list;</div>
+                  <div style={{ paddingLeft: 40, color: '#ef4444' }}>block();</div>
                   <div style={{ paddingLeft: 20 }}>{'}'}</div>
                   <div>{'}'}</div>
                   <div></div>
                   <div>signal(semaphore *S) {'{'}</div>
-                  <div style={{ paddingLeft: 20 }}>S-{'>'} value++;</div>
-                  <div style={{ paddingLeft: 20 }}>if (S-{'>'} value {'<'}= 0) {'{'}</div>
-                  <div style={{ paddingLeft: 40 }}>remove process P from S-{'>'} list;</div>
-                  <div style={{ paddingLeft: 40, color: '#10b981' }}>wakeup(P); <span style={{ color: '#8b949e' }}>/* resume */</span></div>
+                  <div style={{ paddingLeft: 20 }}>S-&gt;value++;</div>
+                  <div style={{ paddingLeft: 20 }}>if (S-&gt;value &lt;= 0) {'{'}</div>
+                  <div style={{ paddingLeft: 40 }}>remove process P from S-&gt;list;</div>
+                  <div style={{ paddingLeft: 40, color: '#10b981' }}>wakeup(P);</div>
                   <div style={{ paddingLeft: 20 }}>{'}'}</div>
                   <div>{'}'}</div>
                 </div>
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Interactive Semaphore Simulator</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Interactive Simulator</h3>
               <SemaphoreSimulator />
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Problems with Semaphores</h3>
               <InfoBox color="#ef4444">
-                Incorrect use leads to bugs that are hard to detect:
-                <br />• <strong>signal(mutex) ... wait(mutex)</strong> — wrong order, mutual exclusion violated
-                <br />• <strong>wait(mutex) ... wait(mutex)</strong> — deadlock, process blocks on its own lock
+                Incorrect use leads to hard-to-detect bugs:
+                <br />• <strong>signal(mutex) then wait(mutex)</strong> — wrong order, mutual exclusion violated
+                <br />• <strong>wait(mutex) then wait(mutex)</strong> — deadlock, process blocks on its own lock
                 <br />• <strong>Omitting wait() or signal()</strong> — either no mutual exclusion or permanent blocking
               </InfoBox>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>POSIX semaphores:</strong> POSIX provides named semaphores (sem_open, can be shared between unrelated processes) and unnamed semaphores (sem_init, shared via shared memory or between threads). sem_wait() = wait(S), sem_post() = signal(S). Named semaphores appear as files in /dev/shm on Linux.
+                <strong style={{ color: 'var(--text-primary)' }}>POSIX semaphores:</strong> POSIX provides named semaphores (sem_open, shared between unrelated processes) and unnamed semaphores (sem_init, shared between threads). sem_wait() is equivalent to wait(S), sem_post() is equivalent to signal(S). Named semaphores appear as files in /dev/shm on Linux.
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Semaphore value can be negative:</strong> In the implementation with waiting queue, the semaphore value can go negative. The magnitude of a negative value represents the number of processes waiting. If S=-3, three processes are blocked on this semaphore. This is useful for monitoring system load.
+                <strong style={{ color: 'var(--text-primary)' }}>Semaphore value can be negative:</strong> In the waiting queue implementation, the semaphore value can go negative. The magnitude represents the number of blocked processes. If S=-3, three processes are waiting on this semaphore. This is useful for monitoring system load.
               </LearnMore>
 
               <NavButtons prev={function() { setActive('mutex') }} prevLabel="← 6.5 Mutex" next={function() { setActive('monitors') }} nextLabel="6.7 Monitors →" />
@@ -1034,22 +942,20 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>A high-level abstraction that makes synchronization safer and easier.</p>
 
               <InfoBox color="#8b5cf6">
-                A <strong>monitor</strong> is a high-level abstraction providing a convenient and effective mechanism for process synchronization. It is an abstract data type where <strong>only one process may be active within the monitor at a time</strong> — mutual exclusion is automatic.
+                A <strong>monitor</strong> is a high-level abstraction where <strong>only one process may be active within the monitor at a time</strong> — mutual exclusion is automatic. It is an abstract data type with internal variables only accessible by code within the monitor procedures.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Monitor Structure</h3>
               <div style={{ background: '#0d1117', border: '1px solid #8b5cf644', borderRadius: 8, padding: 14, marginBottom: 24 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
                   <div>monitor monitor-name {'{'}</div>
                   <div style={{ paddingLeft: 20, color: '#8b949e' }}>// shared variable declarations</div>
-                  <div style={{ paddingLeft: 20, color: '#3b82f6' }}>condition x, y; // condition variables</div>
+                  <div style={{ paddingLeft: 20, color: '#3b82f6' }}>condition x, y;</div>
                   <div></div>
                   <div style={{ paddingLeft: 20 }}>function P1 (...) {'{'}</div>
-                  <div style={{ paddingLeft: 40, color: '#8b949e' }}>// only one process active at a time</div>
+                  <div style={{ paddingLeft: 40, color: '#8b949e' }}>// only one process active here at a time</div>
                   <div style={{ paddingLeft: 20 }}>{'}'}</div>
-                  <div></div>
                   <div style={{ paddingLeft: 20 }}>function P2 (...) {'{'} ... {'}'}</div>
-                  <div></div>
                   <div style={{ paddingLeft: 20 }}>initialization_code (...) {'{'} ... {'}'}</div>
                   <div>{'}'}</div>
                 </div>
@@ -1057,11 +963,11 @@ export default function Chapter6() {
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Condition Variables</h3>
               <InfoBox color="#3b82f6">
-                Monitors use <strong>condition variables</strong> to allow processes to wait for specific conditions. Two operations:
+                Monitors use <strong>condition variables</strong> to wait for specific conditions.
                 <br /><br />
-                <strong>x.wait()</strong> — suspends the calling process. It releases the monitor lock and waits until x.signal() is called.
+                <strong>x.wait()</strong> — suspends the calling process. Releases the monitor lock and waits.
                 <br />
-                <strong>x.signal()</strong> — resumes ONE suspended process waiting on x. If no process is waiting, it has no effect.
+                <strong>x.signal()</strong> — resumes ONE suspended process. If none waiting, has no effect (unlike semaphore signal!).
               </InfoBox>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -1078,32 +984,32 @@ export default function Chapter6() {
                   <div style={{ fontWeight: 700, color: '#10b981', marginBottom: 8 }}>x.signal()</div>
                   <ul style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 16 }}>
                     <li>Resumes ONE waiting process</li>
-                    <li>If none waiting — no effect (differs from semaphore!)</li>
-                    <li>Signaling process must wait or exit</li>
-                    <li>Implementation choice: signal-and-wait vs signal-and-continue</li>
+                    <li>If none waiting — no effect</li>
+                    <li>Key difference from semaphore signal</li>
+                    <li>Signal-and-wait vs signal-and-continue</li>
                   </ul>
                 </div>
               </div>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Monitor vs Semaphore</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div style={{ background: 'var(--bg-card)', border: '1px solid #ef444444', borderRadius: 10, padding: 16 }}>
                   <div style={{ fontWeight: 700, color: '#ef4444', marginBottom: 8 }}>Semaphore (error-prone)</div>
-                  <div style={{ background: '#0d1117', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ background: '#0d1117', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'monospace', color: '#e6edf3', lineHeight: 1.8 }}>
                     <div style={{ color: '#8b949e' }}>/* programmer must do this */</div>
                     <div>wait(mutex);</div>
                     <div style={{ color: '#ef4444' }}>/* critical section */</div>
                     <div>signal(mutex);</div>
-                    <div style={{ color: '#8b949e' }}>/* easy to forget signal! */</div>
+                    <div style={{ color: '#8b949e' }}>/* easy to forget! */</div>
                   </div>
                 </div>
                 <div style={{ background: 'var(--bg-card)', border: '1px solid #10b98144', borderRadius: 10, padding: 16 }}>
                   <div style={{ fontWeight: 700, color: '#10b981', marginBottom: 8 }}>Monitor (automatic)</div>
-                  <div style={{ background: '#0d1117', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div style={{ background: '#0d1117', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'monospace', color: '#e6edf3', lineHeight: 1.8 }}>
                     <div style={{ color: '#8b949e' }}>/* mutual exclusion automatic */</div>
                     <div>monitor M {'{'}</div>
                     <div style={{ paddingLeft: 16 }}>function f() {'{'}</div>
-                    <div style={{ paddingLeft: 32, color: '#10b981' }}>/* only 1 process here */</div>
+                    <div style={{ paddingLeft: 32, color: '#10b981' }}>/* only 1 active */</div>
                     <div style={{ paddingLeft: 16 }}>{'}'}</div>
                     <div>{'}'}</div>
                   </div>
@@ -1111,21 +1017,17 @@ export default function Chapter6() {
               </div>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Java Synchronized — Monitor in Practice</h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
-                Java implements monitors through <strong style={{ color: 'var(--text-primary)' }}>synchronized</strong> methods. Every Java object has an associated lock. If a method is synchronized, a calling thread must own the object's lock. Locks are released when the method exits.
-              </p>
               <div style={{ background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
-                  <div>public class BoundedBuffer{'<'}E{'>'} {'{'}</div>
-                  <div style={{ paddingLeft: 20 }}>private static final int BUFFER_SIZE = 5;</div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#e6edf3', lineHeight: 1.8 }}>
+                  <div>public class BoundedBuffer {'{'}</div>
                   <div style={{ paddingLeft: 20 }}>private int count, in, out;</div>
-                  <div style={{ paddingLeft: 20 }}>private Object[] buffer = new Object[BUFFER_SIZE];</div>
+                  <div style={{ paddingLeft: 20 }}>private Object[] buffer = new Object[5];</div>
                   <div></div>
-                  <div style={{ paddingLeft: 20, color: '#f59e0b' }}>public synchronized void insert(E item) {'{'}</div>
-                  <div style={{ paddingLeft: 40 }}>while (count == BUFFER_SIZE)</div>
-                  <div style={{ paddingLeft: 60, color: '#3b82f6' }}>try {'{'} wait(); {'}'} catch (InterruptedException ie) {'{'} {'}'}</div>
+                  <div style={{ paddingLeft: 20, color: '#f59e0b' }}>public synchronized void insert(Object item) {'{'}</div>
+                  <div style={{ paddingLeft: 40 }}>while (count == 5)</div>
+                  <div style={{ paddingLeft: 60, color: '#3b82f6' }}>try {'{'} wait(); {'}'} catch (Exception e) {'{'} {'}'}</div>
                   <div style={{ paddingLeft: 40 }}>buffer[in] = item;</div>
-                  <div style={{ paddingLeft: 40 }}>in = (in+1) % BUFFER_SIZE;</div>
+                  <div style={{ paddingLeft: 40 }}>in = (in+1) % 5;</div>
                   <div style={{ paddingLeft: 40 }}>count++;</div>
                   <div style={{ paddingLeft: 40, color: '#10b981' }}>notify();</div>
                   <div style={{ paddingLeft: 20 }}>{'}'}</div>
@@ -1134,9 +1036,9 @@ export default function Chapter6() {
               </div>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>Signal-and-wait vs signal-and-continue:</strong> When P calls x.signal() and Q is waiting: Signal-and-wait — P waits until Q either leaves the monitor or waits for another condition. Signal-and-continue — Q waits until P either leaves or waits. Java uses signal-and-continue. Concurrent Pascal uses a compromise: P immediately leaves the monitor, Q is resumed.
+                <strong style={{ color: 'var(--text-primary)' }}>Signal-and-wait vs signal-and-continue:</strong> When P calls x.signal() and Q is waiting — signal-and-wait means P waits until Q leaves the monitor or waits for another condition. Signal-and-continue means Q waits until P leaves or waits. Java uses signal-and-continue. Concurrent Pascal uses a compromise where P immediately leaves the monitor and Q is resumed.
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Monitor implementation using semaphores:</strong> Variables: mutex (=1) for mutual exclusion, next (=0) for signaling threads, next_count (=0). Each function f is wrapped: wait(mutex); body of f; if (next_count{'>'} 0) signal(next) else signal(mutex). For condition variable x: x_sem (=0), x_count (=0). x.wait(): x_count++; if (next_count{'>'} 0) signal(next) else signal(mutex); wait(x_sem); x_count--. x.signal(): if (x_count{'>'} 0) {next_count++; signal(x_sem); wait(next); next_count--}.
+                <strong style={{ color: 'var(--text-primary)' }}>Monitor implementation using semaphores:</strong> Each monitor uses a mutex semaphore (initialized to 1) for mutual exclusion. A next semaphore (initialized to 0) allows signaling threads to suspend themselves. A next_count integer tracks how many processes are suspended on next. Each function in the monitor acquires the mutex before executing and releases it (or signals next) when done.
               </LearnMore>
 
               <NavButtons prev={function() { setActive('semaphores') }} prevLabel="← 6.6 Semaphores" next={function() { setActive('liveness') }} nextLabel="6.8 Liveness →" />
@@ -1149,28 +1051,28 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>When synchronization goes wrong — deadlock, starvation, and priority inversion.</p>
 
               <InfoBox color="#ef4444">
-                <strong>Liveness</strong> refers to a set of properties a system must satisfy to ensure processes make progress. Failing liveness means processes are stuck — either forever or for an unacceptably long time.
+                <strong>Liveness</strong> refers to properties a system must satisfy to ensure processes make progress. Failing liveness means processes are stuck — either permanently or for an unacceptably long time. Indefinite waiting violates progress and bounded-waiting criteria.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 16px' }}>Deadlock</h3>
               <InfoBox color="#ef4444">
                 <strong>Deadlock</strong>: Two or more processes are waiting indefinitely for an event that can only be caused by one of the waiting processes. Nobody can proceed — permanent freeze.
               </InfoBox>
-              <div style={{ background: '#0d1117', border: '1px solid #ef444444', borderRadius: 8, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 8 }}>Classic deadlock with two semaphores S and Q (both initialized to 1):</div>
+              <div style={{ background: '#0d1117', border: '1px solid #ef444444', borderRadius: 8, padding: 14, marginBottom: 24 }}>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 8 }}>Classic deadlock — S and Q both initialized to 1:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#3b82f6', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#3b82f6', lineHeight: 1.8 }}>
                     <div>P0:</div>
-                    <div>wait(S);  ← gets S</div>
-                    <div>wait(Q);  ← BLOCKED (P1 has Q)</div>
+                    <div>wait(S);  &lt;-- gets S</div>
+                    <div>wait(Q);  &lt;-- BLOCKED</div>
                     <div>...</div>
                     <div>signal(S);</div>
                     <div>signal(Q);</div>
                   </div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#8b5cf6', lineHeight: 1.8 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#8b5cf6', lineHeight: 1.8 }}>
                     <div>P1:</div>
-                    <div>wait(Q);  ← gets Q</div>
-                    <div>wait(S);  ← BLOCKED (P0 has S)</div>
+                    <div>wait(Q);  &lt;-- gets Q</div>
+                    <div>wait(S);  &lt;-- BLOCKED</div>
                     <div>...</div>
                     <div>signal(Q);</div>
                     <div>signal(S);</div>
@@ -1183,22 +1085,22 @@ export default function Chapter6() {
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Starvation</h3>
               <InfoBox color="#f59e0b">
-                <strong>Starvation</strong> (indefinite blocking): A process may never be removed from the semaphore queue in which it is suspended. Example: LIFO (last-in-first-out) semaphore queue — the oldest waiting process never gets to run because newer ones always jump ahead.
+                <strong>Starvation</strong> (indefinite blocking): A process may never be removed from the semaphore queue. Example: a LIFO queue — newest waiting processes always go first, oldest never runs.
               </InfoBox>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, margin: '24px 0 12px' }}>Priority Inversion</h3>
               <InfoBox color="#8b5cf6">
-                <strong>Priority Inversion</strong>: A scheduling problem where a lower-priority process holds a lock needed by a higher-priority process. A medium-priority process preempts the low-priority one, indirectly blocking the high-priority process — effectively M has higher priority than H!
+                A lower-priority process holds a lock needed by a higher-priority process. A medium-priority process preempts the low-priority one, indirectly blocking the high-priority process — effectively medium has higher priority than high!
               </InfoBox>
 
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 24 }}>
-                <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>Priority Inversion Scenario:</div>
+                <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>Priority Inversion Scenario (P1=high, P2=medium, P3=low):</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
                     { n: 1, color: '#ef4444', text: 'P3 (low priority) acquires resource R' },
                     { n: 2, color: '#3b82f6', text: 'P1 (high priority) needs R — must wait for P3' },
-                    { n: 3, color: '#f59e0b', text: 'P2 (medium priority) preempts P3 (P2 > P3)' },
-                    { n: 4, color: '#ef4444', text: 'P2 runs to completion — P3 still has R' },
+                    { n: 3, color: '#f59e0b', text: 'P2 (medium priority) preempts P3 since P2 > P3' },
+                    { n: 4, color: '#f59e0b', text: 'P2 runs to completion — P3 still holds R' },
                     { n: 5, color: '#ef4444', text: 'P3 finally runs and releases R' },
                     { n: 6, color: '#3b82f6', text: 'P1 finally gets R — but waited for P2 which has lower priority!' },
                   ].map(function(s) {
@@ -1211,14 +1113,14 @@ export default function Chapter6() {
                   })}
                 </div>
                 <div style={{ marginTop: 16, background: '#8b5cf618', border: '1px solid #8b5cf644', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: '#8b5cf6' }}>Solution: Priority Inheritance Protocol</strong> — P3 temporarily inherits P1's priority while it holds the resource. P3 now has high priority, runs quickly, releases R, and P1 gets it. P3 returns to its original low priority.
+                  <strong style={{ color: '#8b5cf6' }}>Solution: Priority Inheritance Protocol</strong> — P3 temporarily inherits P1 priority while it holds R. P3 now runs at high priority, finishes quickly, releases R, and P1 gets it. P3 then returns to its original low priority.
                 </div>
               </div>
 
               <LearnMore>
-                <strong style={{ color: 'var(--text-primary)' }}>Mars Pathfinder priority inversion (1997):</strong> The spacecraft experienced repeated resets after landing. Root cause: priority inversion between a high-priority meteorological data task and a low-priority communications task, with a medium-priority information bus task blocking the low-priority task. The fix: enable priority inheritance in VxWorks (the RTOS). The same bug existed in the ground testing software but was never triggered because conditions were different. This is why priority inversion is taken seriously in real-time systems.
+                <strong style={{ color: 'var(--text-primary)' }}>Mars Pathfinder priority inversion (1997):</strong> The spacecraft experienced repeated resets after landing. Root cause: priority inversion between a high-priority meteorological data task and a low-priority communications task, with a medium-priority information bus task blocking the low-priority task. The fix was to enable priority inheritance in VxWorks. This is why priority inversion is taken very seriously in real-time systems.
                 <br /><br />
-                <strong style={{ color: 'var(--text-primary)' }}>Deadlock vs Livelock:</strong> Deadlock — processes are blocked, not running at all. Livelock — processes are running but not making progress (like two people in a corridor both stepping aside the same way). Livelock is harder to detect than deadlock. Starvation — one process never makes progress while others do. All three violate liveness but in different ways.
+                <strong style={{ color: 'var(--text-primary)' }}>Deadlock vs Livelock vs Starvation:</strong> Deadlock — processes blocked, not running at all. Livelock — processes running but not making progress (like two people in a corridor stepping aside the same way). Starvation — one process never makes progress while others do. All three violate liveness but in different ways and require different solutions.
               </LearnMore>
 
               <NavButtons prev={function() { setActive('monitors') }} prevLabel="← 6.7 Monitors" next={function() { setActive('simulator') }} nextLabel="Simulator →" />
@@ -1249,30 +1151,23 @@ export default function Chapter6() {
               <p style={{ color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Write and run synchronization code. Copy and run in any online compiler.</p>
 
               <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: '#ef4444' }}>Lab 1 — Python Threading and Locks</h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.7 }}>
-                Python's threading module shows both the race condition problem and the mutex solution.
-              </p>
               <CodeEditor defaultLang="python" height={280} />
 
               <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, marginTop: 32, color: '#3b82f6' }}>Lab 2 — Java Synchronized</h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.7 }}>
-                Java's synchronized keyword implements monitors automatically.
-              </p>
               <CodeEditor defaultLang="java" height={280} />
 
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, marginTop: 32, color: '#06b6d4' }}>Lab 3 — Explore Synchronization in Terminal</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, marginTop: 32, color: '#06b6d4' }}>Lab 3 — Explore in Terminal</h3>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
                 {[
-                  ['cat /proc/locks',          'Show kernel file locks currently held'],
-                  ['ls /dev/shm',              'List shared memory segments'],
-                  ['ipcs -s',                  'List all semaphore sets in system'],
-                  ['ipcs -m',                  'List shared memory segments'],
-                  ['ps aux | grep Z',          'Find zombie processes'],
-                  ['cat /proc/1/fdinfo/0',     'File descriptor info for process 1'],
+                  ['cat /proc/locks',   'Show kernel file locks currently held'],
+                  ['ls /dev/shm',       'List shared memory segments'],
+                  ['ipcs -s',           'List all semaphore sets in system'],
+                  ['ipcs -m',           'List shared memory segments'],
+                  ['ps aux | grep Z',   'Find zombie processes'],
                 ].map(function(item) {
                   return (
                     <div key={item[0]} style={{ display: 'flex', gap: 16, marginBottom: 10, alignItems: 'center' }}>
-                      <code style={{ background: '#0d1117', color: '#3fb950', padding: '3px 10px', borderRadius: 4, fontSize: 11, fontFamily: 'JetBrains Mono, monospace', minWidth: 200, flexShrink: 0 }}>{item[0]}</code>
+                      <code style={{ background: '#0d1117', color: '#3fb950', padding: '3px 10px', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', minWidth: 180, flexShrink: 0 }}>{item[0]}</code>
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item[1]}</span>
                     </div>
                   )
