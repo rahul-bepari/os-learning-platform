@@ -6,6 +6,7 @@ import Chapter3 from './Chapter3'
 import Chapter4 from './Chapter4'
 import Chapter5 from './Chapter5'
 import Chapter6 from './Chapter6'
+import Chapter7 from './Chapter7'
 
 export default function Chapter() {
   const { id } = useParams()
@@ -18,6 +19,7 @@ export default function Chapter() {
   if (ch.id === 4) return <Chapter4 />
   if (ch.id === 5) return <Chapter5 />
   if (ch.id === 6) return <Chapter6 />
+  if (ch.id === 7) return <Chapter7 />
 
   const prev = chapters.find(c => c.id === ch.id - 1)
   const next = chapters.find(c => c.id === ch.id + 1)
@@ -72,7 +74,7 @@ export default function Chapter() {
         {prev
           ? (
             <Link to={'/chapter/' + prev.id} style={{ textDecoration: 'none' }}>
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer' }}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer', transition: 'all 0.2s' }}
                 onMouseEnter={function(e) { e.currentTarget.style.borderColor = prev.color }}
                 onMouseLeave={function(e) { e.currentTarget.style.borderColor = 'var(--border)' }}
               >
@@ -84,7 +86,7 @@ export default function Chapter() {
           : <div />}
         {next && (
           <Link to={'/chapter/' + next.id} style={{ textDecoration: 'none' }}>
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer', textAlign: 'right' }}
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 24px', cursor: 'pointer', textAlign: 'right', transition: 'all 0.2s' }}
               onMouseEnter={function(e) { e.currentTarget.style.borderColor = next.color }}
               onMouseLeave={function(e) { e.currentTarget.style.borderColor = 'var(--border)' }}
             >
