@@ -9,21 +9,23 @@ import Chapter6 from './Chapter6'
 import Chapter7 from './Chapter7'
 import Chapter8 from './Chapter8'
 import Chapter9 from './Chapter9'
+import Chapter10 from './Chapter10'
 
 export default function Chapter() {
   const { id } = useParams()
   const ch = chapters.find(c => c.id === parseInt(id))
   if (!ch) return <div style={{ padding: '60px', color: 'var(--text-secondary)' }}>Chapter not found.</div>
 
-  if (ch.id === 1) return <Chapter1 />
-  if (ch.id === 2) return <Chapter2 />
-  if (ch.id === 3) return <Chapter3 />
-  if (ch.id === 4) return <Chapter4 />
-  if (ch.id === 5) return <Chapter5 />
-  if (ch.id === 6) return <Chapter6 />
-  if (ch.id === 7) return <Chapter7 />
-  if (ch.id === 8) return <Chapter8 />
-  if (ch.id === 9) return <Chapter9 />
+  if (ch.id === 1)  return <Chapter1 />
+  if (ch.id === 2)  return <Chapter2 />
+  if (ch.id === 3)  return <Chapter3 />
+  if (ch.id === 4)  return <Chapter4 />
+  if (ch.id === 5)  return <Chapter5 />
+  if (ch.id === 6)  return <Chapter6 />
+  if (ch.id === 7)  return <Chapter7 />
+  if (ch.id === 8)  return <Chapter8 />
+  if (ch.id === 9)  return <Chapter9 />
+  if (ch.id === 10) return <Chapter10 />
 
   const prev = chapters.find(c => c.id === ch.id - 1)
   const next = chapters.find(c => c.id === ch.id + 1)
