@@ -15,6 +15,7 @@ import Chapter12 from './Chapter12'
 import Chapter13 from './Chapter13'
 import Chapter14 from './Chapter14'
 import Chapter15 from './Chapter15'
+import Chapter16 from './Chapter16'
 
 export default function Chapter() {
   const { id } = useParams()
@@ -36,6 +37,7 @@ export default function Chapter() {
   if (ch.id === 13) return <Chapter13 />
   if (ch.id === 14) return <Chapter14 />
   if (ch.id === 15) return <Chapter15 />
+  if (ch.id === 16) return <Chapter16 />
 
   const prev = chapters.find(c => c.id === ch.id - 1)
   const next = chapters.find(c => c.id === ch.id + 1)
